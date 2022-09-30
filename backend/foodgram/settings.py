@@ -135,6 +135,11 @@ DJOSER = {
         'user': ('rest_framework.permissions.AllowAny',),
         'user_list': ('rest_framework.permissions.AllowAny',),
     },
+    'SERIALIZERS': {
+        'user': 'api.serializers.UserSerializer',
+        'user_list': 'api.serializers.UserSerializer',
+        'current_user': 'api.serializers.UserSerializer',
+    },
 }
 
 AUTH_USER_MODEL = 'users.User'

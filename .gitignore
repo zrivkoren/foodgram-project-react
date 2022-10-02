@@ -110,6 +110,11 @@ ENV/
 env.bak/
 venv.bak/
 
+frontend/build/
+frontend/node_modules
+frontend/package-lock.json
+frontend/yarn.lock
+
 # Spyder project settings
 .spyderproject
 .spyproject

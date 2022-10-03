@@ -125,3 +125,12 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                 })
             valid_ingredients.append(ingredient)
         return attrs
+
+class FavoriteCartSerializer(serializers.ModelSerializer):
+    name = serializers.ReadOnlyField(source='recipe.name')
+    image = Base64ImageField(source='recipe.image')
+    cooking_time = serializers.ReadOnlyField(source='recipe.cooking_time')
+
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')

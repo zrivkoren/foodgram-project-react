@@ -2,12 +2,21 @@ from django.shortcuts import render
 from rest_framework import viewsets
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework.permissions import (
-    AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
+    AllowAny, IsAuthenticatedOrReadOnly
+    # , IsAuthenticated,
 )
+from rest_framework.generics import get_object_or_404
+from rest_framework.response import Response
+from http import HTTPStatus
+from .permissions import IsAdminOrReadOnly, IsAuthorOrAdminOrReadOnly
 from users.models import User
 from recipes.models import Tag, Ingredient, Recipe, IngredientsInRecipe
 
-from api.serializers import UserSerializer
+from api.serializers import (
+    UserSerializer, TagSerializer,
+    IngredientSerializer, RecipeCreateSerializer, RecipeReadSerializer,
+    FavoriteCartSerializer
+)
 
 
 class UserViewSet(DjoserUserViewSet):
@@ -15,5 +24,54 @@ class UserViewSet(DjoserUserViewSet):
     serializer_class = UserSerializer
     permission_classes = (AllowAny,)
 
+
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    pagination_class = None
+
+
+class IngredientViewSet(viewsets.ModelViewSet):
+    queryset = Ingredient.objects.all()
+    serializer_class = IngredientSerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    # filter_backends =
+
+
+class RecipeViewSet(viewsets.ModelViewSet):
+    queryset = Recipe.objects.all()
+    serializer_class = RecipeCreateSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,
+                          IsAuthorOrAdminOrReadOnly,)
+
+    # filter_backends =
+
+    def get_serializer_class(self):
+        if self.request.method in ('POST', 'PATCH', 'PUT'):
+            return RecipeCreateSerializer
+        return RecipeReadSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+    def add_recipe(self, model, request, pk):
+        recipe = get_object_or_404(Recipe, id=pk)
+        if model.objects.filter(
+                recipe=recipe, user=request.user
+        ).exists():
+            return Response(status=HTTPStatus.BAD_REQUEST)
+        model.objects.create(recipe=recipe, user=request.user)
+        serializer = FavoriteCartSerializer(recipe)
+        return Response(data=serializer.data, status=HTTPStatus.CREATED)
+
+    def delete_recipe(self, model, request, pk):
+        recipe = get_object_or_404(Recipe, id=pk)
+        if model.objects.filter(
+                user=request.user, recipe=recipe
+        ).exists():
+            model.objects.filter(
+                user=request.user, recipe=recipe
+            ).delete()
+            return Response(status=HTTPStatus.NO_CONTENT)
+        return Response(status=HTTPStatus.BAD_REQUEST)

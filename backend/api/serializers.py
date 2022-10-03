@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from djoser.serializers import UserSerializer as DjoserUserSerializer
 from drf_extra_fields.fields import Base64ImageField
@@ -55,4 +56,72 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 
 
 class RecipeCreateSerializer(serializers.ModelSerializer):
-    pass
+    author = UserSerializer()
+    tags = serializers.PrimaryKeyRelatedField(
+        queryset=Tag.objects.all(),
+        many=True
+    )
+    image = Base64ImageField()
+    ingredients = IngredientsInRecipeSerializer(
+        source='ingredients_in_recipe',
+        many=True
+    )
+
+    class Meta:
+        model = Recipe
+        fields = (
+            'id', 'author', 'name', 'tags', 'ingredients', 'image', 'text',
+            'cooking_time',
+        )
+
+    def ingredients_create(self, ingredients, recipe):
+        ingredients_list = []
+        for ingredient in ingredients:
+            amount = ingredient['amount']
+            recipe_ingredient = IngredientsInRecipe(
+                ingredient=get_object_or_404(
+                    Ingredient,
+                    id=ingredient['id']
+                ),
+                recipe=recipe,
+                amount=amount
+            )
+            ingredients_list.append(recipe_ingredient)
+        IngredientsInRecipe.objects.bulk_create(ingredients_list)
+
+    def create(self, validated_data):
+        ingredients_data = validated_data.pop('ingredients_in_recipe')
+        image = validated_data.pop('image')
+        tags_data = validated_data.pop('tags')
+        recipe = Recipe.objects.create(image=image, **validated_data)
+        self.ingredients_create(ingredients_data, recipe)
+        recipe.tags.set(tags_data)
+        return recipe
+
+    def update(self, instance, validated_data):
+        IngredientsInRecipe.objects.filter(recipe=instance).delete()
+        ingredients = validated_data.pop('ingredients_in_recipe')
+        tags = validated_data.pop('tags')
+        self.ingredients_create(ingredients=ingredients, recipe=instance)
+        instance.tags.set(tags)
+        return super().update(instance, validated_data)
+
+    def validate(self, attrs):
+        ingredients = attrs.get('ingredients_in_recipe')
+        if not ingredients:
+            raise serializers.ValidationError({
+                'ingredients': 'Нужен хотя бы один ингредиент в рецепте'
+            })
+        valid_ingredients = []
+        for ingredient in ingredients:
+            amount = ingredient['amount']
+            if amount == 0:
+                raise serializers.ValidationError({
+                    'ingredients': 'Количество должно быть больше 0'
+                })
+            if ingredient in valid_ingredients:
+                raise serializers.ValidationError({
+                    'ingredients': 'Такой ингредиент уже есть в рецепте'
+                })
+            valid_ingredients.append(ingredient)
+        return attrs

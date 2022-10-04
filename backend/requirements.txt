@@ -7,3 +7,4 @@ python-dotenv==0.20.0
 sqlparse==0.3.1
 django-cors-headers==3.13.0
 drf-extra-fields==3.4.0
+Pillow==9.2.0

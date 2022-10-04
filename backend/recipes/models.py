@@ -9,6 +9,7 @@ class Ingredient(models.Model):
     class Meta:
         ordering = ['name', ]
         verbose_name = 'Ингредиент'
+        verbose_name_plural = 'Ингредиенты'
 
     def __str__(self):
         return self.name
@@ -34,6 +35,7 @@ class Tag(models.Model):
     class Meta:
         ordering = ['name', ]
         verbose_name = 'Тег'
+        verbose_name_plural = 'Теги'
 
     def __str__(self):
         return self.name
@@ -96,7 +98,7 @@ class IngredientsInRecipe(models.Model):
     amount = models.PositiveIntegerField('Количество')
 
     class Meta:
-        verbose_name = 'Количество ингредиент'
+        verbose_name = 'Ингредиенты в рецептах'
         constraints = [
             models.UniqueConstraint(
                 fields=('ingredient', 'recipe',),

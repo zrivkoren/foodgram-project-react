@@ -8,6 +8,9 @@ from rest_framework.permissions import (
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from http import HTTPStatus
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter
+
 from .permissions import IsAdminOrReadOnly, IsAuthorOrAdminOrReadOnly
 from users.models import User
 from recipes.models import Tag, Ingredient, Recipe, IngredientsInRecipe
@@ -17,6 +20,7 @@ from api.serializers import (
     IngredientSerializer, RecipeCreateSerializer, RecipeReadSerializer,
     FavoriteCartSerializer
 )
+from .filters import RecipeFilter, IngredientFilter
 
 
 class UserViewSet(DjoserUserViewSet):
@@ -34,9 +38,12 @@ class TagViewSet(viewsets.ModelViewSet):
 
 class IngredientViewSet(viewsets.ModelViewSet):
     queryset = Ingredient.objects.all()
+    pagination_class = None
     serializer_class = IngredientSerializer
     permission_classes = (IsAdminOrReadOnly,)
-    # filter_backends =
+    filter_backends = (DjangoFilterBackend, SearchFilter,)
+    filterset_class = IngredientFilter
+    search_fields = ('^name',)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -44,8 +51,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
     serializer_class = RecipeCreateSerializer
     permission_classes = (IsAuthenticatedOrReadOnly,
                           IsAuthorOrAdminOrReadOnly,)
-
-    # filter_backends =
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = RecipeFilter
 
     def get_serializer_class(self):
         if self.request.method in ('POST', 'PATCH', 'PUT'):

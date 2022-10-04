@@ -17,7 +17,7 @@ class TagsAdmin(admin.ModelAdmin):
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
-    list_display = ('author', 'name', 'text',)
+    list_display = ('name', 'author', 'text',)
     list_filter = ('author', 'name', 'tags',)
 
 

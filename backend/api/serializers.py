@@ -37,7 +37,7 @@ class IngredientsInRecipeSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit', 'amount',)
 
     def to_representation(self, instance):
-        data = IngredientSerializer(instance.ingredient.data)
+        data = IngredientSerializer(instance.ingredient).data
         data['amount'] = instance.amount
         return data
 
@@ -49,7 +49,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     ingredients = IngredientsInRecipeSerializer(
         many=True,
         read_only=True,
-        source='ingredients_in_recipe'
+        source='ingredientsinrecipe_set'
     )
 
     class Meta:
@@ -68,7 +68,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     )
     image = Base64ImageField(use_url=True)
     ingredients = IngredientsInRecipeSerializer(
-        source='ingredients_in_recipe',
+        source='ingredientsinrecipe_set',
         many=True
     )
     cooking_time = serializers.IntegerField()
@@ -96,7 +96,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         IngredientsInRecipe.objects.bulk_create(ingredients_list)
 
     def create(self, validated_data):
-        ingredients = validated_data.pop('ingredients_in_recipe')
+        ingredients = validated_data.pop('ingredientsinrecipe_set')
         image = validated_data.pop('image')
         tags_data = validated_data.pop('tags')
         recipe = Recipe.objects.create(image=image, **validated_data)
@@ -113,7 +113,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
     def validate(self, data):
-        ingredients = data.get('ingredients_in_recipe')
+        ingredients = data.get('ingredientsinrecipe_set')
         if not ingredients:
             raise serializers.ValidationError({
                 'ingredients': 'Нужен хотя бы один ингредиент в рецепте'

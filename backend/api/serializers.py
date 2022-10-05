@@ -174,7 +174,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
 
 class FavoriteCartSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(source='recipe.name')
-    image = Base64ImageField(source='recipe.image')
+    image = Base64ImageField(source='recipe.image', read_only=True)
     cooking_time = serializers.ReadOnlyField(source='recipe.cooking_time')
 
     class Meta:

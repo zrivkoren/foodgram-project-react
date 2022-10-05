@@ -1,16 +1,23 @@
-from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from djoser.serializers import UserSerializer as DjoserUserSerializer
 from drf_extra_fields.fields import Base64ImageField
 
 from recipes.models import Tag, Ingredient, IngredientsInRecipe, Recipe
-from users.models import User
+from users.models import User, Subscribe
 
 
 class UserSerializer(DjoserUserSerializer):
+    is_subscribed = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = ('email', 'id', 'username', 'first_name', 'last_name')
+
+    def get_is_subscribed(self, obj):
+        user = self.context.get('request').user
+        if not user.is_authenticated:
+            return False
+        return Subscribe.objects.filter(user=user, author=obj).exists()
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -166,6 +173,46 @@ class FavoriteCartSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(source='recipe.name')
     image = Base64ImageField(source='recipe.image')
     cooking_time = serializers.ReadOnlyField(source='recipe.cooking_time')
+
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+
+
+class SubscribeSerializer(UserSerializer):
+    recipes = serializers.SerializerMethodField()
+    recipes_count = serializers.SerializerMethodField(read_only=True)
+    id = serializers.ReadOnlyField(source='author.id')
+    email = serializers.ReadOnlyField(source='author.email')
+    username = serializers.ReadOnlyField(source='author.username')
+    first_name = serializers.ReadOnlyField(source='author.first_name')
+    last_name = serializers.ReadOnlyField(source='author.last_name')
+    is_subscribed = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Subscribe
+        fields = ('email', 'id', 'username', 'first_name', 'last_name',
+                  'is_subscribed', 'recipes', 'recipes_count')
+
+    def get_recipes(self, obj):
+        request = self.context.get('request')
+        recipes_limit = request.GET.get('recipes_limit')
+        recipes = Recipe.objects.filter(author=obj.author)
+        if recipes_limit:
+            recipes = recipes[:int(recipes_limit)]
+        return RecipeSubscribeSerializer(recipes, many=True).data
+
+    def get_recipes_count(self, obj):
+        return Recipe.objects.filter(author=obj.author).count()
+
+    def get_is_subscribed(self, obj):
+        return Subscribe.objects.filter(
+            user=obj.user, author=obj.author
+        ).exists()
+
+
+class RecipeSubscribeSerializer(serializers.ModelSerializer):
+    image = Base64ImageField()
 
     class Meta:
         model = Recipe

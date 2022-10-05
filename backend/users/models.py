@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 
 USER, GUEST, ADMIN = 'user', 'guest', 'admin'
 ROLES_CHOICES = [
@@ -59,3 +60,29 @@ class User(AbstractUser):
     class Meta:
         ordering = ['username']
         verbose_name = 'Пользователь'
+
+
+class Subscribe(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='follower',
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='following'
+    )
+
+    def clean(self):
+        if self.user == self.author:
+            raise ValidationError('На самого себя нельзя подписываться')
+
+    class Meta:
+        verbose_name = 'Подписка',
+        constraints = [
+            models.UniqueConstraint(
+                fields=('user', 'author'),
+                name='unique_subscribe_user_author'
+            )
+        ]

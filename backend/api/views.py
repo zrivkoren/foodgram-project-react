@@ -13,14 +13,14 @@ from django.db.models import Sum
 from django.http import HttpResponse
 
 from .permissions import IsAdminOrReadOnly, IsAuthorOrAdminOrReadOnly
-from users.models import User
-from recipes.models import Tag, Ingredient, Recipe, IngredientsInRecipe, \
-    Favorite, ShoppingCart
-
+from users.models import User, Subscribe
+from recipes.models import (
+    Tag, Ingredient, Recipe, IngredientsInRecipe, Favorite, ShoppingCart
+)
 from api.serializers import (
     UserSerializer, TagSerializer,
     IngredientSerializer, RecipeCreateSerializer, RecipeReadSerializer,
-    FavoriteCartSerializer
+    FavoriteCartSerializer, SubscribeSerializer
 )
 from .filters import RecipeFilter, IngredientFilter
 
@@ -29,6 +29,56 @@ class UserViewSet(DjoserUserViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (AllowAny,)
+    additional_serializer = SubscribeSerializer
+
+    @action(
+        methods=['GET'], detail=False, permission_classes=(IsAuthenticated,)
+    )
+    def subscriptions(self, request):
+        user = request.user
+        authors = Subscribe.objects.filter(user=user)
+        page = self.paginate_queryset(authors)
+        serializer = self.additional_serializer(
+            page,
+            many=True,
+            context={'request': request})
+        return self.get_paginated_response(serializer.data)
+
+    @action(methods=['POST', 'DELETE'], detail=True)
+    def subscribe(self, request, **kwargs):
+        user = request.user
+        author = get_object_or_404(User, id=kwargs.get('id'))
+        if request.method == 'POST':
+            if user.id == author.id:
+                return Response(
+                    {
+                        'errors': 'Нельзя подписаться на самого себя'
+                    }, status=HTTPStatus.BAD_REQUEST
+                )
+            if Subscribe.objects.filter(user=user, author=author).exists():
+                return Response(
+                    {'errors': 'Вы уже подписаны на данного пользователя'},
+                    status=HTTPStatus.BAD_REQUEST
+                )
+            subscribe = Subscribe.objects.create(user=user, author=author)
+            serializer = self.additional_serializer(
+                subscribe, context={'request': request}
+            )
+            return Response(serializer.data, status=HTTPStatus.CREATED)
+        if request.method == 'DELETE':
+            if user == author:
+                return Response(
+                    {'errors': 'Пользователь и автор совпадают'},
+                    status=HTTPStatus.BAD_REQUEST
+                )
+            follow = Subscribe.objects.filter(user=user, author=author)
+            if follow.exists():
+                follow.delete()
+                return Response(status=HTTPStatus.NO_CONTENT)
+            return Response(
+                {'errors': 'Вы не подписаны на этого автора'},
+                status=HTTPStatus.BAD_REQUEST
+            )
 
 
 class TagViewSet(viewsets.ModelViewSet):

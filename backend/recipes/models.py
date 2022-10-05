@@ -27,7 +27,7 @@ class Tag(models.Model):
         unique=True
     )
     slug = models.SlugField(
-        'Уникальный слаг',
+        'Слаг тега',
         max_length=200,
         unique=True
     )
@@ -105,3 +105,54 @@ class IngredientsInRecipe(models.Model):
                 name='unique_ingredient_recipe'
             )
         ]
+
+
+class Favorite(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='favorites',
+        verbose_name='Юзер'
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='favorites',
+        verbose_name='Избранный рецепт'
+    )
+
+    class Meta:
+        verbose_name = 'Избранный рецепт'
+        verbose_name_plural = 'Избранные рецепты'
+        constraints = [
+            models.UniqueConstraint(fields=('recipe', 'user'),
+                                    name='unique_favor_recipe_usr')
+        ]
+
+
+class ShoppingCart(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='shopping_cart',
+        verbose_name='Пользователь'
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='shopping_cart',
+        verbose_name='Рецепт'
+    )
+
+    class Meta:
+        verbose_name = 'Список покупок'
+        verbose_name_plural = 'Списки покупок'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('recipe', 'user'),
+                name='unique_recipe_user_shopping_list'
+            )
+        ]
+
+    def __str__(self):
+        return f"Список покупок пользователя {self.user.username}"

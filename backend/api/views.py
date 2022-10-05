@@ -80,6 +80,10 @@ class UserViewSet(DjoserUserViewSet):
                 status=HTTPStatus.BAD_REQUEST
             )
 
+    @action(["get"], detail=False, permission_classes=(IsAuthenticated,))
+    def me(self, request, *args, **kwargs):
+        return super().me(request, *args, **kwargs)
+
 
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()

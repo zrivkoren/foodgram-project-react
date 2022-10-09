@@ -16,7 +16,7 @@
 
 ## Данные для тестирования проекта на боевом сервере:
 
-51.250.84.101
+zrivkoren.ddns.net
 логин: reviewer@forever.ru
 пароль: sRk3TdfvL
 

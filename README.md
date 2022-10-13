@@ -16,9 +16,7 @@
 
 ## Данные для тестирования проекта на боевом сервере:
 
-zrivkoren.ddns.net
-логин: reviewer@forever.ru
-пароль: sRk3TdfvL
+http://zrivkoren.ddns.net/recipes
 
 
 ## Запуск проекта
